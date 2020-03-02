@@ -49,3 +49,17 @@ AlexNet的实现后面再补充吧
 *config.py*就是保存一些默认参数，比如：保存路径、lr、batchsize等，这样改起来方便。
 
 *main.py*就是直接调用`trainer`开始模型训练了
+
+## Result
+最后训练的loss和验证集的acc如下
+![image](https://github.com/ArtoriaYe/DogsVSCats/blob/master/img/training_loss_per10iteration.png)
+
+![image](https://github.com/ArtoriaYe/DogsVSCats/blob/master/img/accuracy_in_validation.png)
+
+可以看出训练还是不错的，但是后面验证集的acc基本都是1，可能还是有训练过度导致了有过拟合的情况，最后的提交结果也证明了存在过拟合
+
+即使增大了epoch，并逐步减小lr，是的模型在验证集上表现更加出色，但是提交结果在test表现上还不如之前lr=0.001，epoch=5的结果。
+![image](https://github.com/ArtoriaYe/DogsVSCats/blob/master/img/submission.png)
+
+之后可能会在考虑通过学习增加一些对图片处理方式进行数据增强在试试看能不能有提升
+（比如随机擦除等，不过感觉随机擦除效果可能不是很好，reid里面图片很多存在行人部分被遮挡情况比较合适，但是这个里面猫狗基本都是比较完整的）
