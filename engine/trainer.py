@@ -17,7 +17,7 @@ from utils.metric_utils import CatDogAcc
 logging.basicConfig(level=logging.INFO)
 
 
-def global_step_from_engine(engine):
+def global_step_from_engine(engine, event_name):
     """Helper method to setup `global_step_transform` function using another engine.
     This can be helpful for logging trainer epoch/iteration while output handler is attached to an evaluator.
 
@@ -28,8 +28,8 @@ def global_step_from_engine(engine):
         global step
     """
 
-    def wrapper(_, event_name):
-        return engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
+    def wrapper(_, __):
+        return engine.state.get_event_attrib_value(event_name)
 
     return wrapper
 
@@ -103,7 +103,7 @@ def do_train(model, train_loader, val_loader):
     training_checkpoint = Checkpoint(
         to_save=object_to_checkpoint,
         score_function=score_function,
-        global_step_transform=global_step_from_engine(trainer),
+        global_step_transform=global_step_from_engine(trainer, Events.ITERATION_COMPLETED),
         score_name='val_acc',
         save_handler=DiskSaver(dirname=opt.checkpoint_dir, create_dir=True, require_empty=False, atomic=True, ),
         n_saved=2, filename_prefix='best'
@@ -130,7 +130,7 @@ def do_train(model, train_loader, val_loader):
 
     @trainer.on(Events.EPOCH_COMPLETED(every=2))
     def adjust_lr(engine):
-        if engine.state.epoch >= 8:
+        if engine.state.epoch >= 5:
             logger.info("last lr:{}".format(lr_scheduler.get_lr()[0]))
             lr_scheduler.step()
             logger.info("current lr:{}".format(lr_scheduler.get_lr()[0]))
@@ -155,22 +155,22 @@ def do_train(model, train_loader, val_loader):
         global batch10loss
         batch10loss += batch_loss
         if i == 10:
-            viz.line(X=x, Y=np.array([batch10loss / 100]), win='win')
+            viz.line(X=x, Y=np.array([batch10loss / 10]), win='win', opts={"title": 'training_loss_per10iteration'})
             batch10loss = 0
         elif i % 10 == 0:
-            viz.line(X=x, Y=np.array([batch10loss / 100]), update='append', win='win')
+            viz.line(X=x, Y=np.array([batch10loss / 10]), update='append', win='win')
             batch10loss = 0
 
-    @trainer.on(Events.ITERATION_COMPLETED(every=1))
+    @trainer.on(Events.ITERATION_COMPLETED(every=2))
     def evaluation(engine):
         evaluator.run(val_loader)
         acc = evaluator.state.metrics['acc']
         # print("evaluator result is {:.3f}".format(acc))
         i = engine.state.iteration
         x = np.array([i])
-        if i == 2:
-            viz.line(X=x, Y=np.array([acc]), win='evaluator\'s acc')
+        if i == 100:
+            viz.line(X=x, Y=np.array([acc]), win='evaluator\'s acc', opts={"title": "accuracy in validation set"})
         else:
             viz.line(X=x, Y=np.array([acc]), win='evaluator\'s acc', update='append')
 
-    trainer.run(train_loader, max_epochs=20)
+    trainer.run(train_loader, max_epochs=11)
